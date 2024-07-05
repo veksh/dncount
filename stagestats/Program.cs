@@ -2,6 +2,6 @@
 
 using Stage;
 
-var scount = new StageCounter(["raz", "dva", "tri"]);
-scount.AddRecord(new Dictionary<string, string>{["raz"] = "17:15", ["dva"] = "-"});
-Console.WriteLine($"all ok: {scount.GetCount("raz")}");
+var scount = new StageCounter(["raz", "dva"]);
+var res = scount.AddParticipant(new Dictionary<string, string>{["raz"] = "17:15", ["dva"] = "-"});
+Console.WriteLine($"all ok: {res}");
