@@ -7,7 +7,7 @@ var res1 = scount.AddParticipant(new Dictionary<string, string>{["raz"] = "-", [
 Console.WriteLine($"all ok for first: {res1}");
 var res2 = scount.AddParticipant(new Dictionary<string, string>{["raz"] = "17:15", ["dva"] = "-"});
 Console.WriteLine($"all ok for second: {res2}");
-var res3 = scount.AddParticipant(new Dictionary<string, string>{["raz"] = "17:15", ["dva"] = "18:00"});
+var res3 = scount.AddParticipant(new Dictionary<string, string>{["raz"] = "07:15", ["dva"] = "18:00"});
 Console.WriteLine($"all ok for third: {res3}");
 var res4 = scount.AddParticipant(new Dictionary<string, string>{["raz"] = "-", ["dva"] = "18:00"});
 Console.WriteLine($"here comes the invalid: {res4}");

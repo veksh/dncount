@@ -38,21 +38,22 @@ namespace Stage {
 
             var res = new StatusCheckResult(ParticipantStatus.WAITING);
             var unreachedStageSeen = false;
+            var nrFields = "\"" + string.Join(",", newRecord.Select(kvp => $"{kvp.Key}:{kvp.Value}")) + "\"";
             foreach(string currentStageName in StageNames) {
                 if (!newRecord.ContainsKey(currentStageName)) {
-                    Console.WriteLine($"WARN: invalid participant {newRecord}: {currentStageName} is missed");
+                    Console.WriteLine($"WARN: invalid participant {nrFields}: {currentStageName} is missed");
                     res = INVALID_STATUS;
                     break;
                 }
                 var currentStageTime = newRecord[currentStageName];
                 if (currentStageTime != "-") {
                     if (unreachedStageSeen) {
-                        Console.WriteLine($"WARN: invalid participant {newRecord}: gap before {currentStageName}");
+                        Console.WriteLine($"WARN: invalid participant {nrFields}: gap before {currentStageName}");
                         res = INVALID_STATUS;
                         break;
                     }
                     if (res.StageName != null && String.Compare(currentStageTime, res.StageTime) < 0) {
-                        Console.WriteLine($"WARN: invalid participant {newRecord}: {res.StageName} time > {currentStageName} time");
+                        Console.WriteLine($"WARN: invalid participant {nrFields}: {res.StageName} time > {currentStageName} time");
                         res = INVALID_STATUS;
                         break;
                     }
