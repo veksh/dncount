@@ -47,7 +47,7 @@ namespace Stage {
                 var currentStageTime = newRecord[currentStageName];
                 if (currentStageTime != "-") {
                     if (unreachedStageSeen) {
-                        Console.WriteLine($"WARN: invalid participant {newRecord}: gap between {res.StageName} and {currentStageName}");
+                        Console.WriteLine($"WARN: invalid participant {newRecord}: gap before {currentStageName}");
                         res = INVALID_STATUS;
                         break;
                     }

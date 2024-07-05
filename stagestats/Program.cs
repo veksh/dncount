@@ -3,5 +3,11 @@
 using Stage;
 
 var scount = new StageCounter(["raz", "dva"]);
-var res = scount.AddParticipant(new Dictionary<string, string>{["raz"] = "17:15", ["dva"] = "-"});
-Console.WriteLine($"all ok: {res}");
+var res1 = scount.AddParticipant(new Dictionary<string, string>{["raz"] = "-", ["dva"] = "-"});
+Console.WriteLine($"all ok for first: {res1}");
+var res2 = scount.AddParticipant(new Dictionary<string, string>{["raz"] = "17:15", ["dva"] = "-"});
+Console.WriteLine($"all ok for second: {res2}");
+var res3 = scount.AddParticipant(new Dictionary<string, string>{["raz"] = "17:15", ["dva"] = "18:00"});
+Console.WriteLine($"all ok for third: {res3}");
+var res4 = scount.AddParticipant(new Dictionary<string, string>{["raz"] = "-", ["dva"] = "18:00"});
+Console.WriteLine($"here comes the invalid: {res4}");
