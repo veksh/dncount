@@ -1,4 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using Stage;
 
-Console.WriteLine("Hello, World!");
+var scount = new StageCounter(["raz", "dva", "tri"]);
+scount.AddRecord(new Dictionary<string, string>{["raz"] = "17:15", ["dva"] = "-"});
+Console.WriteLine($"all ok: {scount.GetCount("raz")}");
