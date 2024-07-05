@@ -27,7 +27,7 @@ namespace Stage {
         // count by stage
         private readonly Dictionary<string, int> stageCount;
 
-        private readonly StatusCheckResult INVALID_STATUS = new(ParticipantStatus.INVALID);
+        // private readonly StatusCheckResult INVALID_STATUS = new(ParticipantStatus.INVALID);
 
         public StageCounter(string[] StageNames) {
             this.StageNames = StageNames;
