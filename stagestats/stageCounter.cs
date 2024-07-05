@@ -63,8 +63,12 @@ namespace Stage {
                 }
             }
 
-            if (!unreachedStageSeen) {
-                res.Status = ParticipantStatus.FINISHED;
+            if (res.Status == ParticipantStatus.RUNNING) {
+                if (!unreachedStageSeen) {
+                    res.Status = ParticipantStatus.FINISHED;
+                } else {
+                    stageCount[res.StageName!] += 1;
+                }
             }
 
             statusCount[res.Status] += 1;
