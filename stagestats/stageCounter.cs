@@ -12,7 +12,11 @@ namespace Stage {
     }
 
     // readonly?
-    public record struct StatusCheckResult(ParticipantStatus Status, string? StageName = null, string? StageTime = null);
+    public record struct StatusCheckResult(
+        ParticipantStatus Status,
+        string? StageName = null,
+        string? StageTime = null
+        );
 
     public class StageCounter
     {
@@ -34,44 +38,46 @@ namespace Stage {
                 .ToDictionary(t => t, t => 0);
         }
 
-        public StatusCheckResult AddParticipant(ParticipantRecord newRecord) {
-
+        public (StatusCheckResult, string) GetStatus(ParticipantRecord newRecord) {
             var res = new StatusCheckResult(ParticipantStatus.WAITING);
             var unreachedStageSeen = false;
-            var nrFields = "\"" + string.Join(",", newRecord.Select(kvp => $"{kvp.Key}:{kvp.Value}")) + "\"";
             foreach(string currentStageName in StageNames) {
-                if (!newRecord.ContainsKey(currentStageName)) {
-                    Console.WriteLine($"WARN: invalid participant {nrFields}: {currentStageName} is missed");
-                    res = INVALID_STATUS;
-                    break;
-                }
-                var currentStageTime = newRecord[currentStageName];
-                if (currentStageTime != "-") {
-                    if (unreachedStageSeen) {
-                        Console.WriteLine($"WARN: invalid participant {nrFields}: gap before {currentStageName}");
-                        res = INVALID_STATUS;
-                        break;
+                if (newRecord.TryGetValue(currentStageName, out string? currentStageTime)) {
+                    if (currentStageTime != "-") {
+                        if (unreachedStageSeen) {
+                            return (new StatusCheckResult(ParticipantStatus.INVALID),
+                                $"gap before {currentStageName}");
+                        }
+                        if (res.StageName != null && String.Compare(currentStageTime, res.StageTime) < 0) {
+                            return (new StatusCheckResult(ParticipantStatus.INVALID),
+                                $"{res.StageName} time > {currentStageName} time");
+                        }
+                        res = new StatusCheckResult(ParticipantStatus.RUNNING, currentStageName, currentStageTime);
+                    } else {
+                        unreachedStageSeen = true;
                     }
-                    if (res.StageName != null && String.Compare(currentStageTime, res.StageTime) < 0) {
-                        Console.WriteLine($"WARN: invalid participant {nrFields}: {res.StageName} time > {currentStageName} time");
-                        res = INVALID_STATUS;
-                        break;
-                    }
-                    res = new StatusCheckResult(ParticipantStatus.RUNNING, currentStageName, currentStageTime);
                 } else {
-                    unreachedStageSeen = true;
+                    return (new StatusCheckResult(ParticipantStatus.INVALID),
+                        $"stage {currentStageName} is missed");
                 }
             }
 
-            if (res.Status == ParticipantStatus.RUNNING) {
-                if (!unreachedStageSeen) {
-                    res.Status = ParticipantStatus.FINISHED;
-                } else {
-                    stageCount[res.StageName!] += 1;
-                }
+            if (res.Status == ParticipantStatus.RUNNING && !unreachedStageSeen) {
+                res.Status = ParticipantStatus.FINISHED;
             }
+            return (res, "all ok");
+        }
 
+        public StatusCheckResult AddParticipant(ParticipantRecord newRecord) {
+            var (res, msg) = GetStatus(newRecord);
             statusCount[res.Status] += 1;
+            if (res.Status == ParticipantStatus.RUNNING) {
+                stageCount[res.StageName!] += 1;
+            }
+            if (res.Status == ParticipantStatus.INVALID) {
+                var recFields = "\"" + string.Join(",", newRecord.Select(kvp => $"{kvp.Key}:{kvp.Value}")) + "\"";
+                Console.WriteLine($"WARN: invalid participant {recFields}: {msg}");
+            }
             return res;
         }
 
