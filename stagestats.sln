@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "stagestats", "stagestats\stagestats.csproj", "{A8569557-D26F-4439-9B95-D02F5C230170}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "stagetest", "stagetest\stagetest.csproj", "{6B6024B1-C7DB-4814-93DE-60177880FCDE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{A8569557-D26F-4439-9B95-D02F5C230170}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A8569557-D26F-4439-9B95-D02F5C230170}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A8569557-D26F-4439-9B95-D02F5C230170}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B6024B1-C7DB-4814-93DE-60177880FCDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B6024B1-C7DB-4814-93DE-60177880FCDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B6024B1-C7DB-4814-93DE-60177880FCDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B6024B1-C7DB-4814-93DE-60177880FCDE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

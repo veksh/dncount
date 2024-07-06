@@ -12,14 +12,13 @@ namespace Stage {
     }
 
     // readonly?
-    public record struct StatusCheckResult(
+    public record struct StatusCheckResult (
         ParticipantStatus Status,
         string? StageName = null,
         string? StageTime = null
-        );
+    );
 
-    public class StageCounter
-    {
+    public class StageCounter {
         // name of valid stages in right order
         public string[] StageNames { get; init; }
         // count by status
