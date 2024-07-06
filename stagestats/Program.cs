@@ -4,6 +4,10 @@ using Stage;
 
 var stageNames = new string[]{"raz", "dva"};
 var scount = new StageCounter(stageNames);
+
+var res = scount.GetStatus(new Dictionary<string, string>{["raz"] = "10:00", ["dva"] = "-", ["tri"] = "-"});
+Console.WriteLine($"should be raz: {res}");
+
 var res1 = scount.AddParticipant(new Dictionary<string, string>{["raz"] = "-", ["dva"] = "-"});
 Console.WriteLine($"all ok for first: {res1}");
 var res2 = scount.AddParticipant(new Dictionary<string, string>{["raz"] = "17:15", ["dva"] = "-"});

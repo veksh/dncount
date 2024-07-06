@@ -38,6 +38,7 @@ namespace Stage {
                 .ToDictionary(t => t, t => 0);
         }
 
+        // could be static with StageNames passed
         public (StatusCheckResult, string) GetStatus(ParticipantRecord newRecord) {
             var res = new StatusCheckResult(ParticipantStatus.WAITING);
             var unreachedStageSeen = false;
