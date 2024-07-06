@@ -21,3 +21,6 @@ Console.WriteLine(string.Join(", ", stageNames.Select(sn => $"{sn}: {scount.GetC
 Console.WriteLine(string.Join(", ", Enum.GetValues(typeof(ParticipantStatus))
   .Cast<ParticipantStatus>()
   .Select(sn => $"{sn}: {scount.GetStatusCount(sn)}")));
+
+// var testjson = new StreamReader("test.json").ReadToEnd();
+// or get it via cmdlike; mb structured like {test: {...}, expected: {...}}

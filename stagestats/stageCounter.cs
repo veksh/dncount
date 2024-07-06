@@ -24,7 +24,7 @@ namespace Stage {
         public string[] StageNames { get; init; }
         // count by status
         private readonly Dictionary<ParticipantStatus, int> statusCount;
-        // count by stage
+        // count by stage; could be not int but struct with "first time reached" etc
         private readonly Dictionary<string, int> stageCount;
 
         // private readonly StatusCheckResult INVALID_STATUS = new(ParticipantStatus.INVALID);
@@ -53,6 +53,7 @@ namespace Stage {
                             return (new StatusCheckResult(ParticipantStatus.INVALID),
                                 $"{res.StageName} time > {currentStageName} time");
                         }
+                        // could update in-place, but typically occurs only once
                         res = new StatusCheckResult(ParticipantStatus.RUNNING, currentStageName, currentStageTime);
                     } else {
                         unreachedStageSeen = true;
