@@ -35,4 +35,40 @@ public class StageCounterTest {
         // just for example -- should not really check the message here
         StringAssert.Contains(msg, "time");
     }
+
+    [TestMethod]
+    public void GetStatusCounts(){
+        // Arrange
+        var stageNames = new string[]{"raz", "dva"};
+        var scount = new Stage.StageCounter(stageNames);
+        // good options for invalids: null, String.Empty, "utf стринг", new List<string>{"a", b"}
+        List<Dictionary<string, string>> participants = new List<Dictionary<string, string>>() {
+            new Dictionary<string,string>() {
+                {"raz", "-"},
+                {"dva", "-"},
+            },
+            new Dictionary<string,string>() {
+                {"raz", "10:00"},
+                {"dva", "-"},
+            },
+            new Dictionary<string,string>() {
+                {"raz", "10:00"},
+                {"dva", "11:00"},
+            },
+            new Dictionary<string,string>() {
+                {"raz", "-"},
+                {"dva", "18:00"},
+            },
+        };
+
+        // Act
+        foreach (var p in participants) {
+            scount.AddParticipant(p);
+        }
+
+        // Assert
+        foreach (Stage.ParticipantStatus ps in Enum.GetValues(typeof(Stage.ParticipantStatus))) {
+            Assert.AreEqual(scount.GetStatusCount(ps), 1);
+        }
+    }
 }
