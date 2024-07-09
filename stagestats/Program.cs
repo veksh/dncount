@@ -1,4 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using Stage;
 
@@ -22,5 +24,16 @@ Console.WriteLine(string.Join(", ", Enum.GetValues(typeof(ParticipantStatus))
   .Cast<ParticipantStatus>()
   .Select(sn => $"{sn}: {scount.GetStatusCount(sn)}")));
 
-// var testjson = new StreamReader("test.json").ReadToEnd();
-// or get it via cmdlike; mb structured like {test: {...}, expected: {...}}
+// or cmdline arg, or env var
+// or var httpClient = new HttpClient(); var guys = await httpClient.GetFromJsonAsync<dt>("https://somewhere");
+// or <string,object> and o.ToString()/Int32.TryParse(o.ToString())
+var participants = new StreamReader("participants.json").ReadToEnd();
+var pDicts = JsonSerializer.Deserialize<Dictionary<string,List<Dictionary<string, string>>>>(participants)!.First().Value;
+
+// Console.WriteLine($"it is: {JsonSerializer.Serialize(pDict)}");
+var stageNames2 = new string[]{"start", "stage1", "finish"};
+var scount2 = new StageCounter(stageNames2);
+foreach (var p in pDicts) {
+  scount2.AddParticipant(p);
+}
+Console.WriteLine(string.Join(", ", stageNames2.Select(sn => $"{sn}: {scount2.GetCount(sn)}")));

@@ -1,0 +1,28 @@
+{
+    "those guys": [
+        {"id":      "1",
+         "start":   "10:00",
+         "stage1":  "-",
+         "finish":  "-",
+         "comment": "just started"
+        },
+        {"id":      "2",
+         "start":   "10:00",
+         "stage1":  "11:00",
+         "finish":  "-",
+         "comment": "doing fine"
+        },
+        {"id":      "3",
+         "start":   "10:00",
+         "stage1":  "11:00",
+         "finish":  "12:00",
+         "comment": "did it"
+        },
+        {"id":      "4",
+         "start":   "-",
+         "stage1":  "12:00",
+         "finish":  "11:00",
+         "comment": "invalid"
+        }
+    ]
+}
