@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Formats.Asn1;
 using ParticipantRecord = System.Collections.Generic.IDictionary<string, string>;
 
 namespace Stage {
@@ -22,7 +23,7 @@ namespace Stage {
         // name of valid stages in right order
         public string[] StageNames { get; init; }
         // count by status
-        private readonly Dictionary<ParticipantStatus, int> statusCount;
+        private readonly int[] statusCount;
         // count by stage; could be not int but struct with "first time reached" etc
         private readonly Dictionary<string, int> stageCount;
 
@@ -31,10 +32,7 @@ namespace Stage {
         public StageCounter(string[] StageNames) {
             this.StageNames = StageNames;
             stageCount = StageNames.ToDictionary(k => k, k => 0);
-            // https://stackoverflow.com/questions/5583717/enum-to-dictionaryint-string-in-c-sharp
-            statusCount = Enum.GetValues(typeof(ParticipantStatus))
-                .Cast<ParticipantStatus>()
-                .ToDictionary(t => t, t => 0);
+            statusCount = new int[Enum.GetValues(typeof(ParticipantStatus)).Length];
         }
 
         // could be static with StageNames passed
@@ -71,7 +69,7 @@ namespace Stage {
 
         public StatusCheckResult AddParticipant(ParticipantRecord newRecord) {
             var (res, msg) = GetStatus(newRecord);
-            statusCount[res.Status] += 1;
+            statusCount[(int)res.Status] += 1;
             if (res.Status == ParticipantStatus.RUNNING) {
                 stageCount[res.StageName!] += 1;
             }
@@ -89,7 +87,7 @@ namespace Stage {
         }
 
         public int GetStatusCount(ParticipantStatus status) {
-            return statusCount[status];
+            return statusCount[(int)status];
         }
 
     }

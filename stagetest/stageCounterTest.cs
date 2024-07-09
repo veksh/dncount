@@ -42,24 +42,24 @@ public class StageCounterTest {
         var stageNames = new string[]{"raz", "dva"};
         var scount = new Stage.StageCounter(stageNames);
         // good options for invalids: null, String.Empty, "utf стринг", new List<string>{"a", b"}
-        List<Dictionary<string, string>> participants = new List<Dictionary<string, string>>() {
-            new Dictionary<string,string>() {
+        List<Dictionary<string, string>> participants = [
+            new() {
                 {"raz", "-"},
                 {"dva", "-"},
             },
-            new Dictionary<string,string>() {
+            new() {
                 {"raz", "10:00"},
                 {"dva", "-"},
             },
-            new Dictionary<string,string>() {
+            new() {
                 {"raz", "10:00"},
                 {"dva", "11:00"},
             },
-            new Dictionary<string,string>() {
+            new() {
                 {"raz", "-"},
                 {"dva", "18:00"},
             },
-        };
+        ];
 
         // Act
         foreach (var p in participants) {
