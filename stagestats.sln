@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "stagestats", "stagestats\st
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "stagetest", "stagetest\stagetest.csproj", "{6B6024B1-C7DB-4814-93DE-60177880FCDE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "stageweb", "stageweb\stageweb.csproj", "{91BCFF5B-07DA-4E54-8A16-3828F9C6A673}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{6B6024B1-C7DB-4814-93DE-60177880FCDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6B6024B1-C7DB-4814-93DE-60177880FCDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6B6024B1-C7DB-4814-93DE-60177880FCDE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91BCFF5B-07DA-4E54-8A16-3828F9C6A673}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91BCFF5B-07DA-4E54-8A16-3828F9C6A673}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91BCFF5B-07DA-4E54-8A16-3828F9C6A673}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91BCFF5B-07DA-4E54-8A16-3828F9C6A673}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
