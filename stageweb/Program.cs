@@ -3,9 +3,10 @@
 // - cli: `dotnet add stageweb reference stagestats`
 // run: `dotnet run --project stageweb`
 
+using Stage;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -21,29 +22,27 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
+app.MapGet("/chartdata", (int courseNo = 100) =>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
+    var stageNames = new string[]{"start", "middle", "finish"};
+    var stages = stageNames.Select(stageName =>
+        new Stageweb.RaceStage(stageName, Random.Shared.Next(0, 100))
+    ).ToList();
+    var stateNames = new string[]{"not_started", "running", "done"};
+    var states = stateNames.Select(stateName =>
+        new Stageweb.StatusInfo(stateName, Random.Shared.Next(0, 100))
+    ).ToList();
+    var res = new Stageweb.RaceInfo(stages, states);
+    return res;
 })
-.WithName("GetWeatherForecast")
+.WithName("chartdata")
 .WithOpenApi();
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+// fine-tune appearance: [JsonPropertyName("text")] [JsonInclude]
+namespace Stageweb {
+    record RaceStage(string StageName, int NumRunners) {}
+    record StatusInfo(string StatusName, int NumRunners) {}
+    record RaceInfo(List<RaceStage> Stages, List<StatusInfo> States) {}
 }
