@@ -1,0 +1,25 @@
+{
+    "stages are 1st record keys": [
+        {"start":   "-",
+         "stage1":  "-",
+         "finish":  "-"
+        },
+        {"start":   "10:00",
+         "stage1":  "-",
+         "finish":  "-"
+        },
+        {"start":   "10:00",
+         "stage1":  "11:00",
+         "finish":  "-"
+        },
+        {"start":   "10:00",
+         "stage1":  "11:00",
+         "finish":  "12:00"
+        },
+        {
+        "no start": "here",
+         "stage1":  "12:00",
+         "finish":  "11:00"
+        }
+    ]
+}

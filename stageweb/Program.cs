@@ -4,6 +4,7 @@
 // run: `dotnet run --project stageweb`
 
 using Stage;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,8 +48,7 @@ app.UseCors();
 // see https://learn.microsoft.com/en-us/aspnet/core/fundamentals/logging/?view=aspnetcore-8.0
 app.Logger.LogInformation("The app started");
 
-// optional: string? gender, ... gender ?? "yes"
-app.MapGet("/chartdata", (int courseNo = 100) =>
+app.MapGet("/chartfake", (int courseNo = 100) =>
 {
     var stageNames = new string[]{"start", "middle", "finish"};
     var stages = stageNames.Select(stageName =>
@@ -64,7 +64,33 @@ app.MapGet("/chartdata", (int courseNo = 100) =>
     // alt: Results.NotFound()|UnprocessableEntity()|Content(data, "application/json");
     return Results.Ok(res);
 })
-.WithName("chartdata")
+.WithName("chartfake")
+.WithOpenApi();
+
+// optional: string? gender, ... gender ?? "yes"
+app.MapGet("/chartfile", (string fileName = "run1") =>
+{
+    var raceData = new StreamReader($"{fileName}.json").ReadToEnd();
+    var pDicts = JsonSerializer.Deserialize<Dictionary<string,List<Dictionary<string, string>>>>(raceData)!.First().Value;
+    var stageNames = pDicts.First<Dictionary<string, string>>().Keys.ToArray();
+    var sCounter = new StageCounter(stageNames);
+    foreach (var p in pDicts) {
+        sCounter.AddParticipant(p);
+    }
+    var stages = stageNames.Select(stageName =>
+        new Stageweb.RaceStage(stageName, sCounter.GetCount(stageName))
+    ).ToList();
+
+    var states = Enum.GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().Select(pStatus =>
+        new Stageweb.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
+    ).ToList();
+    var res = new Stageweb.RaceInfo(stages, states);
+    app.Logger.LogInformation("processeed");
+    // or just `return res`;
+    // alt: Results.NotFound()|UnprocessableEntity()|Content(data, "application/json");
+    return Results.Ok(res);
+})
+.WithName("chartfile")
 .WithOpenApi();
 
 // var port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
