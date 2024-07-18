@@ -59,7 +59,7 @@ app.MapGet("/chartfake", (int courseNo = 100) =>
         new Stageweb.StatusInfo(stateName, Random.Shared.Next(0, courseNo))
     ).ToList();
     var res = new Stageweb.RaceInfo(stages, states);
-    app.Logger.LogInformation("processeed");
+    app.Logger.LogInformation("returned fake data");
     // or just `return res`;
     // alt: Results.NotFound()|UnprocessableEntity()|Content(data, "application/json");
     return Results.Ok(res);
@@ -70,24 +70,32 @@ app.MapGet("/chartfake", (int courseNo = 100) =>
 // optional: string? gender, ... gender ?? "yes"
 app.MapGet("/chartfile", (string fileName = "run1") =>
 {
-    var raceData = new StreamReader($"{fileName}.json").ReadToEnd();
+    string raceData = "";
+    try {
+        raceData = new StreamReader($"{fileName}.json").ReadToEnd();
+    } catch (IOException e) {
+        app.Logger.LogError(e, "could not open file {fileName}", fileName);
+        return Results.NotFound();
+    }
     var pDicts = JsonSerializer.Deserialize<Dictionary<string,List<Dictionary<string, string>>>>(raceData)!.First().Value;
-    var stageNames = pDicts.First<Dictionary<string, string>>().Keys.ToArray();
+    var stageNames = pDicts.First().Keys.ToArray();
     var sCounter = new StageCounter(stageNames);
     foreach (var p in pDicts) {
         sCounter.AddParticipant(p);
     }
-    var stages = stageNames.Select(stageName =>
-        new Stageweb.RaceStage(stageName, sCounter.GetCount(stageName))
-    ).ToList();
+    var stages = stageNames.
+        Select(stageName =>
+            new Stageweb.RaceStage(stageName, sCounter.GetCount(stageName))).
+        ToList();
 
-    var states = Enum.GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().Select(pStatus =>
-        new Stageweb.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
-    ).ToList();
+    var states = Enum.
+        GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
+        Select(pStatus =>
+            new Stageweb.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
+        ).
+        ToList();
     var res = new Stageweb.RaceInfo(stages, states);
-    app.Logger.LogInformation("processeed");
-    // or just `return res`;
-    // alt: Results.NotFound()|UnprocessableEntity()|Content(data, "application/json");
+    app.Logger.LogInformation("processed file {fileName}", fileName);
     return Results.Ok(res);
 })
 .WithName("chartfile")
