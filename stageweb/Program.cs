@@ -4,6 +4,7 @@
 // run: `dotnet run --project stageweb`
 
 using Stage;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -99,6 +100,48 @@ app.MapGet("/chartfile", (string fileName = "run1") =>
     return Results.Ok(res);
 })
 .WithName("chartfile")
+.WithOpenApi();
+
+// optional: string? gender, ... gender ?? "yes"
+app.MapGet("/chartweb", (int courseNo = 101) =>
+{
+    string dataUrl = "https://xuhapage.s3.eu-west-2.amazonaws.com/participants.json";
+    List<Dictionary<string, string>> pDicts;
+    try {
+        HttpClient client = new();
+        pDicts = client.
+            GetFromJsonAsync<Dictionary<string,List<Dictionary<string, string>>>>(dataUrl).
+            GetAwaiter().
+            GetResult()!.
+            First().
+            Value;
+    } catch (Exception e) {
+        app.Logger.LogError(e, "could not open and parse url {dataUrl}", dataUrl);
+        return Results.NotFound();
+    }
+    // var stageNames = pDicts.First().Keys.ToArray();
+    // actually need to take it from nearby file :)
+    var stageNames = new string[]{"start", "stage1", "finish"};
+    var sCounter = new StageCounter(stageNames);
+    foreach (var p in pDicts) {
+        sCounter.AddParticipant(p);
+    }
+    var stages = stageNames.
+        Select(stageName =>
+            new Stageweb.RaceStage(stageName, sCounter.GetCount(stageName))).
+        ToList();
+
+    var states = Enum.
+        GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
+        Select(pStatus =>
+            new Stageweb.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
+        ).
+        ToList();
+    var res = new Stageweb.RaceInfo(stages, states);
+    app.Logger.LogInformation("processed url {url}", dataUrl);
+    return Results.Ok(res);
+})
+.WithName("chartweb")
 .WithOpenApi();
 
 // var port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
