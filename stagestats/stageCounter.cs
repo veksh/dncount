@@ -70,7 +70,7 @@ namespace Stage {
         public StatusCheckResult AddParticipant(ParticipantRecord newRecord) {
             var (res, msg) = GetStatus(newRecord);
             statusCount[(int)res.Status] += 1;
-            if (res.Status == ParticipantStatus.RUNNING) {
+            if (res.Status == ParticipantStatus.RUNNING || res.Status == ParticipantStatus.FINISHED) {
                 stageCount[res.StageName!] += 1;
             }
             if (res.Status == ParticipantStatus.INVALID) {

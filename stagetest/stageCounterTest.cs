@@ -12,14 +12,14 @@ public class StageCounterTest {
             ["raz"] = "10:00",
             ["dva"] = "-",
             ["tri"] = "extra"});
-        Assert.AreEqual<string>(res.StageName, "raz");
+        Assert.AreEqual<string>("raz", res.StageName);
         Assert.AreEqual<Stage.StatusCheckResult>(
-            res,
             new Stage.StatusCheckResult(
                 Stage.ParticipantStatus.RUNNING,
                 "raz",
                 "10:00"
-            ));
+            ),
+            res);
     }
 
     [TestMethod]
@@ -31,7 +31,7 @@ public class StageCounterTest {
             ["raz"] = "10:00",
             ["dva"] = "09:00",
             ["tri"] = "-"});
-        Assert.AreEqual<Stage.ParticipantStatus>(res.Status, Stage.ParticipantStatus.INVALID);
+        Assert.AreEqual<Stage.ParticipantStatus>(Stage.ParticipantStatus.INVALID, res.Status);
         // just for example -- should not really check the message here
         StringAssert.Contains(msg, "time");
     }
@@ -68,7 +68,44 @@ public class StageCounterTest {
 
         // Assert
         foreach (Stage.ParticipantStatus ps in Enum.GetValues(typeof(Stage.ParticipantStatus))) {
-            Assert.AreEqual(scount.GetStatusCount(ps), 1);
+            Assert.AreEqual(1, scount.GetStatusCount(ps));
         }
     }
+
+    [TestMethod]
+    public void GetStageCounts(){
+        // Arrange
+        var stageNames = new string[]{"raz", "dva"};
+        var scount = new Stage.StageCounter(stageNames);
+        // same as above
+        List<Dictionary<string, string>> participants = [
+            new() {
+                {"raz", "-"},
+                {"dva", "-"},
+            },
+            new() {
+                {"raz", "10:00"},
+                {"dva", "-"},
+            },
+            new() {
+                {"raz", "10:00"},
+                {"dva", "11:00"},
+            },
+            new() {
+                {"raz", "-"},
+                {"dva", "18:00"},
+            },
+        ];
+
+        // Act
+        foreach (var p in participants) {
+            scount.AddParticipant(p);
+        }
+
+        // Assert
+        foreach (string stageName in stageNames) {
+            Assert.AreEqual(1, scount.GetCount(stageName), $"bad count for {stageName}");
+        }
+    }
+
 }
