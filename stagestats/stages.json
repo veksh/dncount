@@ -1,7 +1,7 @@
 {
     "stages": [
-        "start",
-        "stage1",
-        "finish"
+        {"name": "start"},
+        {"name": "stage1"},
+        {"name": "finish"}
     ]
 }

@@ -105,32 +105,42 @@ app.MapGet("/chartfile", (string fileName = "run1") =>
 // optional: string? gender, ... gender ?? "yes"
 app.MapGet("/chartweb", (int courseNo = 101) =>
 {
+    app.Logger.LogInformation("started");
+
     string dataUrl = "https://xuhapage.s3.eu-west-2.amazonaws.com/participants.json";
     List<Dictionary<string, string>> pDicts;
     try {
-        HttpClient client = new();
-        pDicts = client.
-            GetFromJsonAsync<Dictionary<string,List<Dictionary<string, string>>>>(dataUrl).
-            GetAwaiter().
-            GetResult()!.
-            First().
-            Value;
+        pDicts = Stageweb.UrlDataGetter.DictFromUrl(dataUrl);
+        app.Logger.LogInformation(
+            "parsed data at {url}, got {count} records",
+            dataUrl, pDicts.Count);
     } catch (Exception e) {
-        app.Logger.LogError(e, "could not open and parse url {dataUrl}", dataUrl);
-        return Results.NotFound();
+        app.Logger.LogError(e, "could not fetch or parse data at {url}", dataUrl);
+        return Results.BadRequest(e);
     }
-    // var stageNames = pDicts.First().Keys.ToArray();
-    // actually need to take it from nearby file :)
-    var stageNames = new string[]{"start", "stage1", "finish"};
+
+    string stagesUrl = "https://xuhapage.s3.eu-west-2.amazonaws.com/stages.json";
+    string[] stageNames;
+    try {
+        var sDict = Stageweb.UrlDataGetter.DictFromUrl(stagesUrl);
+        stageNames = sDict.Select(d => d["name"]).ToArray();
+        app.Logger.LogInformation(
+            "parsed stages at {url}, got {count} records",
+            stagesUrl, stageNames.Length);
+    } catch (Exception e) {
+        app.Logger.LogError(e, "could not fetch or parse stages at {url}", stagesUrl);
+        return Results.BadRequest(e);
+    }
+
     var sCounter = new StageCounter(stageNames);
     foreach (var p in pDicts) {
         sCounter.AddParticipant(p);
     }
+
     var stages = stageNames.
         Select(stageName =>
             new Stageweb.RaceStage(stageName, sCounter.GetCount(stageName))).
         ToList();
-
     var states = Enum.
         GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
         Select(pStatus =>
@@ -138,7 +148,8 @@ app.MapGet("/chartweb", (int courseNo = 101) =>
         ).
         ToList();
     var res = new Stageweb.RaceInfo(stages, states);
-    app.Logger.LogInformation("processed url {url}", dataUrl);
+
+    app.Logger.LogInformation("done");
     return Results.Ok(res);
 })
 .WithName("chartweb")
@@ -150,6 +161,20 @@ app.Run();
 
 // fine-tune appearance: [JsonPropertyName("text")] [JsonInclude]
 namespace Stageweb {
+
+    internal class UrlDataGetter {
+        static readonly HttpClient client = new();
+        // throws an exception if not found, unparseable, empty, wrong structure etc
+        public static List<Dictionary<string, string>> DictFromUrl(string url) {
+            return client.
+                GetFromJsonAsync<Dictionary<string,List<Dictionary<string, string>>>>(url).
+                GetAwaiter().
+                GetResult()!.
+                First().
+                Value;
+        }
+    }
+
     record RaceStage(string StageName, int NumRunners) {}
     record StatusInfo(string StatusName, int NumRunners) {}
     record RaceInfo(List<RaceStage> Stages, List<StatusInfo> States) {}
