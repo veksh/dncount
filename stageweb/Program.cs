@@ -158,15 +158,15 @@ app.MapGet("/chartwebstatic", (int courseNo = 101) =>
 HttpClient client = new();
 // optional: string? gender, ... gender ?? "yes"
 // curl http://localhost:5432/chartwebfly
-app.MapGet("/chartwebfly", (int courseNo = 101) => {
-    app.Logger.LogInformation($"started for courseNo {courseNo}");
+app.MapGet("/chartwebfly", (int course) => {
+    app.Logger.LogInformation($"started, course {course}");
 
     // var baseUrl = "https://mockraceapi.fly.dev/middleware";
     var baseUrl = app.Configuration["DataAPI:BaseUrl"];
 
     string splitsUrl = string.Format("{0}/info/json?course={1}&setting=splits",
         baseUrl,
-        courseNo);
+        course);
     string[] splitNames;
     string   splitNumbers;
     try {
@@ -186,7 +186,7 @@ app.MapGet("/chartwebfly", (int courseNo = 101) => {
     var detailNames = "start,gender,status";
     string dataUrl = string.Format("{0}/result/json?course={1}&splitnr={2}&detail={3}",
         baseUrl,
-        courseNo,
+        course,
         splitNumbers,
         detailNames);
 
