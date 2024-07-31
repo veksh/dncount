@@ -53,13 +53,13 @@ app.MapGet("/chartfake", (int courseNo = 100) =>
 {
     var stageNames = new string[]{"start", "middle", "finish"};
     var stages = stageNames.Select(stageName =>
-        new StaticRace.RaceStage(stageName, Random.Shared.Next(0, courseNo))
+        new RaceData.RaceStage(stageName, Random.Shared.Next(0, courseNo))
     ).ToList();
     var stateNames = new string[]{"not_started", "running", "done"};
     var states = stateNames.Select(stateName =>
-        new StaticRace.StatusInfo(stateName, Random.Shared.Next(0, courseNo))
+        new RaceData.StatusInfo(stateName, Random.Shared.Next(0, courseNo))
     ).ToList();
-    var res = new StaticRace.RaceInfo(stages, states);
+    var res = new RaceData.RaceInfo(stages, states);
     app.Logger.LogInformation("returned fake data");
     // or just `return res`;
     // alt: Results.NotFound()|UnprocessableEntity()|Content(data, "application/json");
@@ -86,16 +86,16 @@ app.MapGet("/chartfile", (string fileName = "run1") =>
     }
     var stages = stageNames.
         Select(stageName =>
-            new StaticRace.RaceStage(stageName, sCounter.GetCount(stageName))).
+            new RaceData.RaceStage(stageName, sCounter.GetCount(stageName))).
         ToList();
 
     var states = Enum.
         GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
         Select(pStatus =>
-            new StaticRace.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
+            new RaceData.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
         ).
         ToList();
-    var res = new StaticRace.RaceInfo(stages, states);
+    var res = new RaceData.RaceInfo(stages, states);
     app.Logger.LogInformation("processed file {fileName}", fileName);
     return Results.Ok(res);
 })
@@ -110,7 +110,7 @@ app.MapGet("/chartwebstatic", (int courseNo = 101) =>
     string dataUrl = "https://xuhapage.s3.eu-west-2.amazonaws.com/participants.json";
     List<Dictionary<string, string>> pDicts;
     try {
-        pDicts = StaticRace.UrlDataGetter.DictFromUrl(dataUrl);
+        pDicts = RaceData.UrlDataGetter.DictFromUrl(dataUrl);
         app.Logger.LogInformation(
             "parsed data at {url}, got {count} records",
             dataUrl, pDicts.Count);
@@ -122,7 +122,7 @@ app.MapGet("/chartwebstatic", (int courseNo = 101) =>
     string stagesUrl = "https://xuhapage.s3.eu-west-2.amazonaws.com/stages.json";
     string[] stageNames;
     try {
-        var sDict = StaticRace.UrlDataGetter.DictFromUrl(stagesUrl);
+        var sDict = RaceData.UrlDataGetter.DictFromUrl(stagesUrl);
         stageNames = sDict.Select(d => d["name"]).ToArray();
         app.Logger.LogInformation(
             "parsed stages at {url}, got {count} records",
@@ -139,15 +139,15 @@ app.MapGet("/chartwebstatic", (int courseNo = 101) =>
 
     var stages = stageNames.
         Select(stageName =>
-            new StaticRace.RaceStage(stageName, sCounter.GetCount(stageName))).
+            new RaceData.RaceStage(stageName, sCounter.GetCount(stageName))).
         ToList();
     var states = Enum.
         GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
         Select(pStatus =>
-            new StaticRace.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
+            new RaceData.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
         ).
         ToList();
-    var res = new StaticRace.RaceInfo(stages, states);
+    var res = new RaceData.RaceInfo(stages, states);
 
     app.Logger.LogInformation("done");
     return Results.Ok(res);
@@ -158,9 +158,8 @@ app.MapGet("/chartwebstatic", (int courseNo = 101) =>
 HttpClient client = new();
 // optional: string? gender, ... gender ?? "yes"
 // curl http://localhost:5226/chartwebfly
-app.MapGet("/chartwebfly", async (int courseNo = 101) =>
-{
-    app.Logger.LogInformation("started");
+app.MapGet("/chartwebfly", (int courseNo = 101) => {
+    app.Logger.LogInformation($"started for courseNo {courseNo}");
 
     var baseUrl = "https://mockraceapi.fly.dev/middleware";
 
@@ -170,17 +169,18 @@ app.MapGet("/chartwebfly", async (int courseNo = 101) =>
     string[] splitNames;
     string   splitNumbers;
     try {
-        var splitsDataDict = await client.GetFromJsonAsync<Dictionary<string, List<SplitData>>>(splitsUrl);
-        var splitsData = splitsDataDict!.First().Value;
+        var splitsData = RaceData.UrlDataGetter.AllSplits(splitsUrl).
+            Where(s => Convert.ToUInt32(s.Splitnr) > 100 && Convert.ToUInt32(s.Splitnr) < 1000);
         app.Logger.LogInformation(
             "parsed splits at {url}, got {count} records",
-            splitsUrl, splitsData!.ToArray().Length);
-        splitNames = splitsData!.Select(s => s.Splitname).ToArray();
-        splitNumbers = string.Join(",", splitsData!.Select(s => s.Splitnr));
+            splitsUrl, splitsData.ToArray().Length);
+        splitNames = splitsData.Select(s => s.Splitname).ToArray();
+        splitNumbers = string.Join(",", splitsData.Select(s => s.Splitnr));
     } catch (Exception e) {
         app.Logger.LogError(e, "could not fetch or parse splits at {url}", splitsUrl);
-        return Results.BadRequest(e);
+        return Results.BadRequest($"failed to parse splits: {e.Message}");
     }
+    app.Logger.LogInformation($"will use split numbers {splitNumbers}");
 
     var detailNames = "start,gender,status";
     string dataUrl = string.Format("{0}/result/json?course={1}&splitnr={2}&detail={3}&count={4}",
@@ -192,13 +192,13 @@ app.MapGet("/chartwebfly", async (int courseNo = 101) =>
 
     List<Dictionary<string, string>> pDicts;
     try {
-        pDicts = StaticRace.UrlDataGetter.DictFromUrl(dataUrl);
+        pDicts = RaceData.UrlDataGetter.DictFromUrl(dataUrl);
         app.Logger.LogInformation(
             "parsed data at {url}, got {count} records",
             dataUrl, pDicts.Count);
     } catch (Exception e) {
         app.Logger.LogError(e, "could not fetch or parse data at {url}", dataUrl);
-        return Results.BadRequest(e);
+        return Results.BadRequest($"failed to parse course data: {e.Message}");
     }
 
     var sCounter = new StageCounter(splitNames);
@@ -208,15 +208,15 @@ app.MapGet("/chartwebfly", async (int courseNo = 101) =>
 
     var splits = splitNames.
         Select(splitName =>
-            new StaticRace.RaceStage(splitName, sCounter.GetCount(splitName))).
+            new RaceData.RaceStage(splitName, sCounter.GetCount(splitName))).
         ToList();
     var states = Enum.
         GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
         Select(pStatus =>
-            new StaticRace.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
+            new RaceData.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
         ).
         ToList();
-    var res = new StaticRace.RaceInfo(splits, states);
+    var res = new RaceData.RaceInfo(splits, states);
 
     app.Logger.LogInformation("done");
     return Results.Ok(res);
@@ -229,7 +229,7 @@ app.MapGet("/chartwebfly", async (int courseNo = 101) =>
 app.Run();
 
 // fine-tune appearance: [JsonPropertyName("text")] [JsonInclude]
-namespace StaticRace {
+namespace RaceData {
 
     internal class UrlDataGetter {
         static readonly HttpClient client = new();
@@ -242,16 +242,29 @@ namespace StaticRace {
                 First().
                 Value;
         }
+
+        public static List<SplitData> AllSplits(string url) {
+            return client.
+                GetFromJsonAsync<Dictionary<string, List<SplitData>>>(url).
+                GetAwaiter().
+                GetResult()!.
+                First().
+                Value;
+        }
     }
 
+    // src
+    record SplitData (
+        string Splitnr,
+        string Splitname,
+        string ID,
+        string State,
+        string ToD) {}
+
+    // dst
     record RaceStage(string StageName, int NumRunners) {}
     record StatusInfo(string StatusName, int NumRunners) {}
     record RaceInfo(List<RaceStage> Stages, List<StatusInfo> States) {}
 }
 
-record SplitData (
-    string Splitnr,
-    string Splitname,
-    string ID,
-    string State,
-    string ToD) {}
+
