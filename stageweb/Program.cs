@@ -37,7 +37,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
     app.UseDeveloperExceptionPage();
-    // conf: https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/?view=aspnetcore-8.0
+    // conf: https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/
     // var message = app.Configuration["MyKey"] ?? "undef";
     // var title = Configuration["Position:Title"];
     // var number = Configuration.GetValue<int>("NumberKey", 99)
@@ -157,11 +157,12 @@ app.MapGet("/chartwebstatic", (int courseNo = 101) =>
 
 HttpClient client = new();
 // optional: string? gender, ... gender ?? "yes"
-// curl http://localhost:5226/chartwebfly
+// curl http://localhost:5432/chartwebfly
 app.MapGet("/chartwebfly", (int courseNo = 101) => {
     app.Logger.LogInformation($"started for courseNo {courseNo}");
 
-    var baseUrl = "https://mockraceapi.fly.dev/middleware";
+    // var baseUrl = "https://mockraceapi.fly.dev/middleware";
+    var baseUrl = app.Configuration["DataAPI:BaseUrl"];
 
     string splitsUrl = string.Format("{0}/info/json?course={1}&setting=splits",
         baseUrl,
