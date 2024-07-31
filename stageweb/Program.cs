@@ -3,6 +3,7 @@
 // - cli: `dotnet add stageweb reference stagestats`
 // run: `dotnet run --project stageweb`
 
+using RaceData;
 using Stage;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -239,6 +240,34 @@ app.MapGet("/chartwebfly", (int course, string filter="all:all") => {
 .WithName("chartwebfly")
 .WithOpenApi();
 
+app.MapGet("/splits", (int course) => {
+    app.Logger.LogInformation($"started, course {course}");
+
+    // var baseUrl = "https://mockraceapi.fly.dev/middleware";
+    var baseUrl = app.Configuration["DataAPI:BaseUrl"];
+
+    string splitsUrl = string.Format("{0}/info/json?course={1}&setting=splits",
+        baseUrl,
+        course);
+    var allSplitsInfo = new List<SplitInfo>{};
+    try {
+        var splitsData = RaceData.UrlDataGetter.AllSplits(splitsUrl).
+            Where(s => Convert.ToUInt32(s.Splitnr) > 100 && Convert.ToUInt32(s.Splitnr) < 1000);
+        app.Logger.LogInformation(
+            "parsed splits at {url}, got {count} records",
+            splitsUrl, splitsData.ToArray().Length);
+        allSplitsInfo = splitsData.Select(sd => new SplitInfo(sd.Splitname, Convert.ToUInt32(sd.Splitnr))).ToList();
+    } catch (Exception e) {
+        app.Logger.LogError(e, "could not fetch or parse splits at {url}", splitsUrl);
+        return Results.BadRequest($"failed to parse splits: {e.Message}");
+    }
+
+    app.Logger.LogInformation("done");
+    return Results.Ok(allSplitsInfo);
+})
+.WithName("splits")
+.WithOpenApi();
+
 // var port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
 // app.Run($"http://localhost:{port}");
 app.Run();
@@ -280,6 +309,7 @@ namespace RaceData {
     record RaceStage(string StageName, int NumRunners) {}
     record StatusInfo(string StatusName, int NumRunners) {}
     record RaceInfo(List<RaceStage> Stages, List<StatusInfo> States) {}
+    record SplitInfo(string SplitName, uint SplitID) {}
 }
 
 
