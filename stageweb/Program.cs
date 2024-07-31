@@ -183,12 +183,11 @@ app.MapGet("/chartwebfly", (int courseNo = 101) => {
     app.Logger.LogInformation($"will use split numbers {splitNumbers}");
 
     var detailNames = "start,gender,status";
-    string dataUrl = string.Format("{0}/result/json?course={1}&splitnr={2}&detail={3}&count={4}",
+    string dataUrl = string.Format("{0}/result/json?course={1}&splitnr={2}&detail={3}",
         baseUrl,
         courseNo,
         splitNumbers,
-        detailNames,
-        10);
+        detailNames);
 
     List<Dictionary<string, string>> pDicts;
     try {
