@@ -51,6 +51,18 @@ app.UseCors();
 // see https://learn.microsoft.com/en-us/aspnet/core/fundamentals/logging/?view=aspnetcore-8.0
 app.Logger.LogInformation("The app started");
 
+app.MapGet("/", (HttpResponse response) => {
+    app.Logger.LogInformation("root page requested");
+    string fpath = "data/index.html";
+    try {
+        var fStream = File.OpenRead(fpath);
+        return Results.Stream(fStream, "application/html");
+    } catch (IOException e) {
+        app.Logger.LogError(e, "could not open index page");
+        return Results.NotFound();
+    }
+});
+
 app.MapGet("/chartfake", (int courseNo = 100) =>
 {
     var stageNames = new string[]{"start", "middle", "finish"};
@@ -75,7 +87,7 @@ app.MapGet("/chartfile", (string fileName = "run1") =>
 {
     string raceData = "";
     try {
-        raceData = new StreamReader($"{fileName}.json").ReadToEnd();
+        raceData = new StreamReader($"data/{fileName}.json").ReadToEnd();
     } catch (IOException e) {
         app.Logger.LogError(e, "could not open file {fileName}", fileName);
         return Results.NotFound();
