@@ -53,13 +53,13 @@ app.MapGet("/chartfake", (int courseNo = 100) =>
 {
     var stageNames = new string[]{"start", "middle", "finish"};
     var stages = stageNames.Select(stageName =>
-        new Stageweb.RaceStage(stageName, Random.Shared.Next(0, courseNo))
+        new StaticRace.RaceStage(stageName, Random.Shared.Next(0, courseNo))
     ).ToList();
     var stateNames = new string[]{"not_started", "running", "done"};
     var states = stateNames.Select(stateName =>
-        new Stageweb.StatusInfo(stateName, Random.Shared.Next(0, courseNo))
+        new StaticRace.StatusInfo(stateName, Random.Shared.Next(0, courseNo))
     ).ToList();
-    var res = new Stageweb.RaceInfo(stages, states);
+    var res = new StaticRace.RaceInfo(stages, states);
     app.Logger.LogInformation("returned fake data");
     // or just `return res`;
     // alt: Results.NotFound()|UnprocessableEntity()|Content(data, "application/json");
@@ -86,16 +86,16 @@ app.MapGet("/chartfile", (string fileName = "run1") =>
     }
     var stages = stageNames.
         Select(stageName =>
-            new Stageweb.RaceStage(stageName, sCounter.GetCount(stageName))).
+            new StaticRace.RaceStage(stageName, sCounter.GetCount(stageName))).
         ToList();
 
     var states = Enum.
         GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
         Select(pStatus =>
-            new Stageweb.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
+            new StaticRace.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
         ).
         ToList();
-    var res = new Stageweb.RaceInfo(stages, states);
+    var res = new StaticRace.RaceInfo(stages, states);
     app.Logger.LogInformation("processed file {fileName}", fileName);
     return Results.Ok(res);
 })
@@ -103,14 +103,14 @@ app.MapGet("/chartfile", (string fileName = "run1") =>
 .WithOpenApi();
 
 // optional: string? gender, ... gender ?? "yes"
-app.MapGet("/chartweb", (int courseNo = 101) =>
+app.MapGet("/chartwebstatic", (int courseNo = 101) =>
 {
     app.Logger.LogInformation("started");
 
     string dataUrl = "https://xuhapage.s3.eu-west-2.amazonaws.com/participants.json";
     List<Dictionary<string, string>> pDicts;
     try {
-        pDicts = Stageweb.UrlDataGetter.DictFromUrl(dataUrl);
+        pDicts = StaticRace.UrlDataGetter.DictFromUrl(dataUrl);
         app.Logger.LogInformation(
             "parsed data at {url}, got {count} records",
             dataUrl, pDicts.Count);
@@ -122,7 +122,7 @@ app.MapGet("/chartweb", (int courseNo = 101) =>
     string stagesUrl = "https://xuhapage.s3.eu-west-2.amazonaws.com/stages.json";
     string[] stageNames;
     try {
-        var sDict = Stageweb.UrlDataGetter.DictFromUrl(stagesUrl);
+        var sDict = StaticRace.UrlDataGetter.DictFromUrl(stagesUrl);
         stageNames = sDict.Select(d => d["name"]).ToArray();
         app.Logger.LogInformation(
             "parsed stages at {url}, got {count} records",
@@ -139,20 +139,89 @@ app.MapGet("/chartweb", (int courseNo = 101) =>
 
     var stages = stageNames.
         Select(stageName =>
-            new Stageweb.RaceStage(stageName, sCounter.GetCount(stageName))).
+            new StaticRace.RaceStage(stageName, sCounter.GetCount(stageName))).
         ToList();
     var states = Enum.
         GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
         Select(pStatus =>
-            new Stageweb.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
+            new StaticRace.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
         ).
         ToList();
-    var res = new Stageweb.RaceInfo(stages, states);
+    var res = new StaticRace.RaceInfo(stages, states);
 
     app.Logger.LogInformation("done");
     return Results.Ok(res);
 })
-.WithName("chartweb")
+.WithName("chartwebstatic")
+.WithOpenApi();
+
+HttpClient client = new();
+// optional: string? gender, ... gender ?? "yes"
+// curl http://localhost:5226/chartwebfly
+app.MapGet("/chartwebfly", async (int courseNo = 101) =>
+{
+    app.Logger.LogInformation("started");
+
+    var baseUrl = "https://mockraceapi.fly.dev/middleware";
+
+    string splitsUrl = string.Format("{0}/info/json?course={1}&setting=splits",
+        baseUrl,
+        courseNo);
+    string[] splitNames;
+    string   splitNumbers;
+    try {
+        var splitsDataDict = await client.GetFromJsonAsync<Dictionary<string, List<SplitData>>>(splitsUrl);
+        var splitsData = splitsDataDict!.First().Value;
+        app.Logger.LogInformation(
+            "parsed splits at {url}, got {count} records",
+            splitsUrl, splitsData!.ToArray().Length);
+        splitNames = splitsData!.Select(s => s.Splitname).ToArray();
+        splitNumbers = string.Join(",", splitsData!.Select(s => s.Splitnr));
+    } catch (Exception e) {
+        app.Logger.LogError(e, "could not fetch or parse splits at {url}", splitsUrl);
+        return Results.BadRequest(e);
+    }
+
+    var detailNames = "start,gender,status";
+    string dataUrl = string.Format("{0}/result/json?course={1}&splitnr={2}&detail={3}&count={4}",
+        baseUrl,
+        courseNo,
+        splitNumbers,
+        detailNames,
+        10);
+
+    List<Dictionary<string, string>> pDicts;
+    try {
+        pDicts = StaticRace.UrlDataGetter.DictFromUrl(dataUrl);
+        app.Logger.LogInformation(
+            "parsed data at {url}, got {count} records",
+            dataUrl, pDicts.Count);
+    } catch (Exception e) {
+        app.Logger.LogError(e, "could not fetch or parse data at {url}", dataUrl);
+        return Results.BadRequest(e);
+    }
+
+    var sCounter = new StageCounter(splitNames);
+    foreach (var p in pDicts) {
+        sCounter.AddParticipant(p);
+    }
+
+    var splits = splitNames.
+        Select(splitName =>
+            new StaticRace.RaceStage(splitName, sCounter.GetCount(splitName))).
+        ToList();
+    var states = Enum.
+        GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
+        Select(pStatus =>
+            new StaticRace.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
+        ).
+        ToList();
+    var res = new StaticRace.RaceInfo(splits, states);
+
+    app.Logger.LogInformation("done");
+    return Results.Ok(res);
+})
+.WithName("chartwebfly")
 .WithOpenApi();
 
 // var port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
@@ -160,7 +229,7 @@ app.MapGet("/chartweb", (int courseNo = 101) =>
 app.Run();
 
 // fine-tune appearance: [JsonPropertyName("text")] [JsonInclude]
-namespace Stageweb {
+namespace StaticRace {
 
     internal class UrlDataGetter {
         static readonly HttpClient client = new();
@@ -179,3 +248,10 @@ namespace Stageweb {
     record StatusInfo(string StatusName, int NumRunners) {}
     record RaceInfo(List<RaceStage> Stages, List<StatusInfo> States) {}
 }
+
+record SplitData (
+    string Splitnr,
+    string Splitname,
+    string ID,
+    string State,
+    string ToD) {}
