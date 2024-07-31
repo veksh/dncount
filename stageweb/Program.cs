@@ -158,8 +158,13 @@ app.MapGet("/chartwebstatic", (int courseNo = 101) =>
 HttpClient client = new();
 // optional: string? gender, ... gender ?? "yes"
 // curl http://localhost:5432/chartwebfly
-app.MapGet("/chartwebfly", (int course) => {
+app.MapGet("/chartwebfly", (int course, string filter="all:all") => {
     app.Logger.LogInformation($"started, course {course}");
+
+    if (filter != "all:all" && filter.Split(":").Length != 2) {
+        app.Logger.LogError("filter {filter} is malformed", filter);
+        return Results.BadRequest($"filter {filter} is malformed");
+    }
 
     // var baseUrl = "https://mockraceapi.fly.dev/middleware";
     var baseUrl = app.Configuration["DataAPI:BaseUrl"];
@@ -199,6 +204,16 @@ app.MapGet("/chartwebfly", (int course) => {
     } catch (Exception e) {
         app.Logger.LogError(e, "could not fetch or parse data at {url}", dataUrl);
         return Results.BadRequest($"failed to parse course data: {e.Message}");
+    }
+
+    if (filter != "all:all") {
+        var f = filter.Split(":");
+        pDicts = (List<Dictionary<string, string>>)pDicts.
+          Where(p => p.GetValueOrDefault(f[0], "!" + f[1]) == f[1]).
+          ToList();
+        app.Logger.LogInformation(
+            "filtered data with {filter}, {count} records matched",
+            filter, pDicts.Count);
     }
 
     var sCounter = new StageCounter(splitNames);
