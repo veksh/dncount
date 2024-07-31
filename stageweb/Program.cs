@@ -3,6 +3,7 @@
 // - cli: `dotnet add stageweb reference stagestats`
 // run: `dotnet run --project stageweb`
 
+using Microsoft.AspNetCore.Http.HttpResults;
 using RaceData;
 using Stage;
 using System.Runtime.CompilerServices;
@@ -257,8 +258,11 @@ app.MapGet("/splits", (int course) => {
             "parsed splits at {url}, got {count} records",
             splitsUrl, splitsData.ToArray().Length);
         allSplitsInfo = splitsData.Select(sd => new SplitInfo(sd.Splitname, Convert.ToUInt32(sd.Splitnr))).ToList();
+    } catch (HttpRequestException e) {
+        app.Logger.LogError(e, "could not fetch {url}", splitsUrl);
+        return Results.NotFound($"failed to fetch splits: {e.Message}");
     } catch (Exception e) {
-        app.Logger.LogError(e, "could not fetch or parse splits at {url}", splitsUrl);
+        app.Logger.LogError(e, "could not parse splits at {url}", splitsUrl);
         return Results.BadRequest($"failed to parse splits: {e.Message}");
     }
 
