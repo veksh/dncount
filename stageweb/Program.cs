@@ -71,7 +71,7 @@ app.MapGet("/chartfake", (int courseNo = 100) =>
     ).ToList();
     var stateNames = new string[]{"not_started", "running", "done"};
     var states = stateNames.Select(stateName =>
-        new RaceData.StatusInfo(stateName, Random.Shared.Next(0, courseNo))
+        new RaceData.RaceStatus(stateName, Random.Shared.Next(0, courseNo))
     ).ToList();
     var res = new RaceData.RaceInfo(stages, states);
     app.Logger.LogInformation("returned fake data");
@@ -106,7 +106,7 @@ app.MapGet("/chartfile", (string fileName = "run1") =>
     var states = Enum.
         GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
         Select(pStatus =>
-            new RaceData.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
+            new RaceData.RaceStatus(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
         ).
         ToList();
     var res = new RaceData.RaceInfo(stages, states);
@@ -158,7 +158,7 @@ app.MapGet("/chartwebstatic", (int courseNo = 101) =>
     var states = Enum.
         GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
         Select(pStatus =>
-            new RaceData.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
+            new RaceData.RaceStatus(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
         ).
         ToList();
     var res = new RaceData.RaceInfo(stages, states);
@@ -242,7 +242,7 @@ app.MapGet("/chartwebfly", (int course, string filter="all:all") => {
     var states = Enum.
         GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
         Select(pStatus =>
-            new RaceData.StatusInfo(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
+            new RaceData.RaceStatus(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
         ).
         ToList();
     var res = new RaceData.RaceInfo(splits, states);
@@ -253,10 +253,39 @@ app.MapGet("/chartwebfly", (int course, string filter="all:all") => {
 .WithName("chartwebfly")
 .WithOpenApi();
 
+app.MapGet("/courses", () => {
+    app.Logger.LogInformation($"started");
+
+    var baseUrl = app.Configuration["DataAPI:BaseUrl"];
+
+    string coursesUrl = string.Format("{0}/info/json?setting=courses",
+        baseUrl);
+    var allCoursesInfo = new List<CourseInfo>{};
+    try {
+        var coursesData = RaceData.UrlDataGetter.AllCourses(coursesUrl);
+        app.Logger.LogInformation(
+            "parsed courses at {url}, got {count} records",
+            coursesUrl, coursesData.ToArray().Length);
+        allCoursesInfo = coursesData.
+            Select(cd => new CourseInfo(cd.Coursename, Convert.ToUInt32(cd.Coursenr))).
+            ToList();
+    } catch (HttpRequestException e) {
+        app.Logger.LogError(e, "could not fetch {url}", coursesUrl);
+        return Results.NotFound($"failed to fetch courses: {e.Message}");
+    } catch (Exception e) {
+        app.Logger.LogError(e, "could not parse splits at {url}", coursesUrl);
+        return Results.BadRequest($"failed to parse courses: {e.Message}");
+    }
+
+    app.Logger.LogInformation("done");
+    return Results.Ok(allCoursesInfo);
+})
+.WithName("courses")
+.WithOpenApi();
+
 app.MapGet("/splits", (int course) => {
     app.Logger.LogInformation($"started, course {course}");
 
-    // var baseUrl = "https://mockraceapi.fly.dev/middleware";
     var baseUrl = app.Configuration["DataAPI:BaseUrl"];
 
     string splitsUrl = string.Format("{0}/info/json?course={1}&setting=splits",
@@ -265,11 +294,14 @@ app.MapGet("/splits", (int course) => {
     var allSplitsInfo = new List<SplitInfo>{};
     try {
         var splitsData = RaceData.UrlDataGetter.AllSplits(splitsUrl).
-            Where(s => Convert.ToUInt32(s.Splitnr) > 100 && Convert.ToUInt32(s.Splitnr) < 1000);
+            Where(s => Convert.ToUInt32(s.Splitnr) > 100
+                    && Convert.ToUInt32(s.Splitnr) < 1000);
         app.Logger.LogInformation(
             "parsed splits at {url}, got {count} records",
             splitsUrl, splitsData.ToArray().Length);
-        allSplitsInfo = splitsData.Select(sd => new SplitInfo(sd.Splitname, Convert.ToUInt32(sd.Splitnr))).ToList();
+        allSplitsInfo = splitsData.
+            Select(sd => new SplitInfo(sd.Splitname, Convert.ToUInt32(sd.Splitnr))).
+            ToList();
     } catch (HttpRequestException e) {
         app.Logger.LogError(e, "could not fetch {url}", splitsUrl);
         return Results.NotFound($"failed to fetch splits: {e.Message}");
@@ -303,6 +335,16 @@ namespace RaceData {
                 Value;
         }
 
+        // make it generic already?
+        public static List<CourseData> AllCourses(string url) {
+            return client.
+                GetFromJsonAsync<Dictionary<string, List<CourseData>>>(url).
+                GetAwaiter().
+                GetResult()!.
+                First().
+                Value;
+        }
+
         public static List<SplitData> AllSplits(string url) {
             return client.
                 GetFromJsonAsync<Dictionary<string, List<SplitData>>>(url).
@@ -321,10 +363,21 @@ namespace RaceData {
         string State,
         string ToD) {}
 
+    record CourseData (
+        string Coursenr,
+        string Coursename,
+        string Event,
+        string Eventname,
+        string Status,
+        string Timeoffset,
+        string Ordering,
+        string Remark) {}
+
     // dst
     record RaceStage(string StageName, int NumRunners) {}
-    record StatusInfo(string StatusName, int NumRunners) {}
-    record RaceInfo(List<RaceStage> Stages, List<StatusInfo> States) {}
+    record RaceStatus(string StatusName, int NumRunners) {}
+    record RaceInfo(List<RaceStage> Stages, List<RaceStatus> States) {}
+    record CourseInfo(string CourseName, uint CourseID) {}
     record SplitInfo(string SplitName, uint SplitID) {}
 }
 
