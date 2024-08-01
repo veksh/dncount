@@ -11,6 +11,8 @@ COPY . ./
 RUN cd stageweb && dotnet restore
 # build and publish a release
 RUN cd stageweb && dotnet publish -c Release -o /app
+# data files: index.html
+COPY stageweb/data /app/data
 
 # final stage/image
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_SDK_VERSION}
