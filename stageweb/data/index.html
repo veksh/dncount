@@ -7,8 +7,14 @@
 <div style="display: flex; align-items: center;">
   <label for="courseSelect">Select course:</label>
   <select id="courseSelect"></select>
-  <div id="refreshMessage" style="margin-left: 20px;"></div>
+  <label for="filterSelect" style="margin-left: 20px;">Filter:</label>
+  <select id="filterSelect">
+    <option value="all:all">All</option>
+    <option value="gender:M">Male</option>
+    <option value="gender:W">Female</option>
+  </select>
   <div id="timerBox" style="margin-left: 20px;"></div>
+  <div id="refreshMessage" style="margin-left: 20px;"></div>
 </div>
 
 <canvas id="myChart" style="width:50%"></canvas>
@@ -16,7 +22,8 @@
 <script>
 
 let courseNo = '999';
-let dataUrl = `https://stageweb.fly.dev/chartwebfly?course=${courseNo}`;
+let filter = 'all';
+let dataUrl = `https://stageweb.fly.dev/chartwebfly?course=${courseNo}&filter=${filter}`;
 let chart;
 
 async function getData(dataUrl) {
@@ -86,6 +93,7 @@ function makeChart(data) {
 
 const timerBox = document.getElementById('timerBox');
 const courseSelect = document.getElementById('courseSelect');
+const filterSelect = document.getElementById('filterSelect');
 const refreshMessage = document.getElementById('refreshMessage');
 refreshInterval = 10000;
 timerBox.textContent = `Refresh every ${refreshInterval / 1000}s`;
@@ -93,12 +101,16 @@ let lastRefreshTime = Date.now();
 
 async function updateChart() {
   courseNo = courseSelect.value;
-  dataUrl = `https://stageweb.fly.dev/chartwebfly?course=${courseNo}`;
+  filter = filterSelect.value;
+  dataUrl = `https://stageweb.fly.dev/chartwebfly?course=${courseNo}&filter=${filter}`;
   data = await getData(dataUrl);
   if (data) {
     console.log("got data:", data);
     if (chart) {
       chart.data.datasets[0].data = Object.values(data.stages);
+      chart.data.datasets[0].backgroundColor = palette('tol', data.stages.length).map(function(hex) {
+        return '#' + hex;
+      });
       chart.update();
     } else {
       chart = makeChart(data.stages);
@@ -120,12 +132,13 @@ async function populateCourseSelect() {
     courseSelect.appendChild(option);
   });
   courseSelect.addEventListener('change', updateChart);
+  filterSelect.addEventListener('change', updateChart);
   updateChart();
 }
 
 populateCourseSelect();
 
-setInterval(updateChart, refreshInterval);
+let refreshTimer = setInterval(updateChart, refreshInterval);
 
 setInterval(() => {
   const timeLeft = refreshInterval - (Date.now() - lastRefreshTime);
@@ -135,6 +148,13 @@ setInterval(() => {
     timerBox.textContent = `Refresh in ${Math.round(timeLeft / 1000)}s`;
   }
 }, 1000)
+
+filterSelect.addEventListener('change', () => {
+  clearInterval(refreshTimer);
+  lastRefreshTime = Date.now();
+  updateChart();
+  refreshTimer = setInterval(updateChart, refreshInterval);
+});
 
 </script>
 
