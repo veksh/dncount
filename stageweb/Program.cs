@@ -56,7 +56,7 @@ app.MapGet("/", (HttpResponse response) => {
     string fpath = "data/index.html";
     try {
         var fStream = File.OpenRead(fpath);
-        return Results.Stream(fStream, "application/html");
+        return Results.Stream(fStream, "text/html");
     } catch (IOException e) {
         app.Logger.LogError(e, "could not open index page");
         return Results.NotFound();
