@@ -1,9 +1,112 @@
-<html xmlns="http://www.w3.org/1999/xhtml" >
-<head>
-    <title>hello stageweb</title>
-</head>
+<!DOCTYPE html>
+<html>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/google/palette.js@master/palette.js"></script>
 <body>
-  <h1>real content will be here</h1>
-  <p>(after some while)</p>
+
+<div id="timerBox"></div>
+<canvas id="myChart" style="width:50%"></canvas>
+
+<script>
+
+// will set a param later
+const dataUrl = 'https://stageweb.fly.dev/chartwebfly?course=999'
+
+async function getData(dataUrl) {
+  const data = fetch(dataUrl)
+    .then(res => res.json())
+    .catch(error => {
+        console.error('Error fetching data:', error);
+    });
+  return data;
+}
+
+function makeChart(data) {
+  chart = new Chart("myChart", {
+    type: "bar",
+    data: {
+      datasets: [{
+        label: "splits",
+        // see https://github.com/google/palette.js
+        backgroundColor: palette('tol', data.length).map(function(hex) {
+          return '#' + hex;
+        }),
+        // https://www.chartjs.org/docs/latest/general/data-structures.html
+        data: data
+      }]
+    },
+    options: {
+      parsing: {
+        xAxisKey: 'stageName',
+        yAxisKey: 'numRunners'
+      },
+      title: {
+        display: true,
+        text: "Stuff of legends"
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          enabled: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: data.length,
+          title: {
+            display: true,
+            text: 'Num of them'
+          }
+        },
+        x: {
+          title: {
+            display: false,
+            text: 'Splits'
+          }
+        }
+      }
+    }
+  });
+  return chart
+}
+
+const timerBox = document.getElementById('timerBox');
+refreshInterval = 10000;
+timerBox.textContent = `Refresh every ${refreshInterval / 1000}s`;
+lastRefreshTime = Date.now();
+
+(async() => {
+  data = await getData(dataUrl);
+  console.log("got data:", data);
+  chart = makeChart(data.stages);
+
+  setInterval(async function(){
+    // console.log("refreshing")
+    try {
+      data = await getData(dataUrl);
+      chart.data.datasets[0].data = Object.values(data.stages);
+      chart.update();
+      lastRefreshTime = Date.now()
+    } catch (error) {
+      console.log(error);
+    }
+  }, refreshInterval);
+
+  setInterval(() => {
+    const timeLeft = refreshInterval - (Date.now() - lastRefreshTime);
+    if (timeLeft < 1000) {
+      timerBox.textContent = `Refreshing`;
+    } else {
+      timerBox.textContent = `Refresh in ${Math.round(timeLeft / 1000)}s`;
+    }
+  }, 1000)
+
+})();
+
+</script>
+
 </body>
 </html>
