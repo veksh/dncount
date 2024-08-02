@@ -64,116 +64,10 @@ app.MapGet("/", (HttpResponse response) => {
     }
 });
 
-app.MapGet("/chartfake", (int courseNo = 100) =>
-{
-    var stageNames = new string[]{"start", "middle", "finish"};
-    var stages = stageNames.Select(stageName =>
-        new RaceData.RaceStage(stageName, Random.Shared.Next(0, courseNo))
-    ).ToList();
-    var stateNames = new string[]{"not_started", "running", "done"};
-    var states = stateNames.Select(stateName =>
-        new RaceData.RaceStatus(stateName, Random.Shared.Next(0, courseNo))
-    ).ToList();
-    var res = new RaceData.RaceInfo(stages, states);
-    app.Logger.LogInformation("returned fake data");
-    // or just `return res`;
-    // alt: Results.NotFound()|UnprocessableEntity()|Content(data, "application/json");
-    return Results.Ok(res);
-})
-.WithName("chartfake")
-.WithOpenApi();
-
-// optional: string? gender, ... gender ?? "yes"
-app.MapGet("/chartfile", (string fileName = "run1") =>
-{
-    string raceData = "";
-    try {
-        raceData = new StreamReader($"data/{fileName}.json").ReadToEnd();
-    } catch (IOException e) {
-        app.Logger.LogError(e, "could not open file {fileName}", fileName);
-        return Results.NotFound();
-    }
-    var pDicts = JsonSerializer.Deserialize<Dictionary<string,List<Dictionary<string, string>>>>(raceData)!.First().Value;
-    var stageNames = pDicts.First().Keys.ToArray();
-    var sCounter = new StageCounter(stageNames);
-    foreach (var p in pDicts) {
-        sCounter.AddParticipant(p);
-    }
-    var stages = stageNames.
-        Select(stageName =>
-            new RaceData.RaceStage(stageName, sCounter.GetCount(stageName))).
-        ToList();
-
-    var states = Enum.
-        GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
-        Select(pStatus =>
-            new RaceData.RaceStatus(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
-        ).
-        ToList();
-    var res = new RaceData.RaceInfo(stages, states);
-    app.Logger.LogInformation("processed file {fileName}", fileName);
-    return Results.Ok(res);
-})
-.WithName("chartfile")
-.WithOpenApi();
-
-// optional: string? gender, ... gender ?? "yes"
-app.MapGet("/chartwebstatic", (int courseNo = 101) =>
-{
-    app.Logger.LogInformation("started");
-
-    string dataUrl = "https://xuhapage.s3.eu-west-2.amazonaws.com/participants.json";
-    List<Dictionary<string, string>> pDicts;
-    try {
-        pDicts = RaceData.UrlDataGetter.DictFromUrl(dataUrl);
-        app.Logger.LogInformation(
-            "parsed data at {url}, got {count} records",
-            dataUrl, pDicts.Count);
-    } catch (Exception e) {
-        app.Logger.LogError(e, "could not fetch or parse data at {url}", dataUrl);
-        return Results.BadRequest(e);
-    }
-
-    string stagesUrl = "https://xuhapage.s3.eu-west-2.amazonaws.com/stages.json";
-    string[] stageNames;
-    try {
-        var sDict = RaceData.UrlDataGetter.DictFromUrl(stagesUrl);
-        stageNames = sDict.Select(d => d["name"]).ToArray();
-        app.Logger.LogInformation(
-            "parsed stages at {url}, got {count} records",
-            stagesUrl, stageNames.Length);
-    } catch (Exception e) {
-        app.Logger.LogError(e, "could not fetch or parse stages at {url}", stagesUrl);
-        return Results.BadRequest(e);
-    }
-
-    var sCounter = new StageCounter(stageNames);
-    foreach (var p in pDicts) {
-        sCounter.AddParticipant(p);
-    }
-
-    var stages = stageNames.
-        Select(stageName =>
-            new RaceData.RaceStage(stageName, sCounter.GetCount(stageName))).
-        ToList();
-    var states = Enum.
-        GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
-        Select(pStatus =>
-            new RaceData.RaceStatus(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
-        ).
-        ToList();
-    var res = new RaceData.RaceInfo(stages, states);
-
-    app.Logger.LogInformation("done");
-    return Results.Ok(res);
-})
-.WithName("chartwebstatic")
-.WithOpenApi();
-
 HttpClient client = new();
 // optional: string? gender, ... gender ?? "yes"
 // curl http://localhost:5432/chartwebfly
-app.MapGet("/chartwebfly", (int course, string filter="all:all") => {
+app.MapGet("/chart", (int course, string filter="all:all") => {
     app.Logger.LogInformation($"started, course {course}");
 
     if (filter != "all:all" && filter.Split(":").Length != 2) {
@@ -251,7 +145,7 @@ app.MapGet("/chartwebfly", (int course, string filter="all:all") => {
     app.Logger.LogInformation("done");
     return Results.Ok(res);
 })
-.WithName("chartwebfly")
+.WithName("chart")
 .WithOpenApi();
 
 app.MapGet("/courses", () => {
@@ -382,4 +276,112 @@ namespace RaceData {
     record SplitInfo(string SplitName, uint SplitID) {}
 }
 
+/* attic
 
+app.MapGet("/chartfake", (int courseNo = 100) =>
+{
+    var stageNames = new string[]{"start", "middle", "finish"};
+    var stages = stageNames.Select(stageName =>
+        new RaceData.RaceStage(stageName, Random.Shared.Next(0, courseNo))
+    ).ToList();
+    var stateNames = new string[]{"not_started", "running", "done"};
+    var states = stateNames.Select(stateName =>
+        new RaceData.RaceStatus(stateName, Random.Shared.Next(0, courseNo))
+    ).ToList();
+    var res = new RaceData.RaceInfo(stages, states);
+    app.Logger.LogInformation("returned fake data");
+    // or just `return res`;
+    // alt: Results.NotFound()|UnprocessableEntity()|Content(data, "application/json");
+    return Results.Ok(res);
+})
+.WithName("chartfake")
+.WithOpenApi();
+
+// optional: string? gender, ... gender ?? "yes"
+app.MapGet("/chartfile", (string fileName = "run1") =>
+{
+    string raceData = "";
+    try {
+        raceData = new StreamReader($"data/{fileName}.json").ReadToEnd();
+    } catch (IOException e) {
+        app.Logger.LogError(e, "could not open file {fileName}", fileName);
+        return Results.NotFound();
+    }
+    var pDicts = JsonSerializer.Deserialize<Dictionary<string,List<Dictionary<string, string>>>>(raceData)!.First().Value;
+    var stageNames = pDicts.First().Keys.ToArray();
+    var sCounter = new StageCounter(stageNames);
+    foreach (var p in pDicts) {
+        sCounter.AddParticipant(p);
+    }
+    var stages = stageNames.
+        Select(stageName =>
+            new RaceData.RaceStage(stageName, sCounter.GetCount(stageName))).
+        ToList();
+
+    var states = Enum.
+        GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
+        Select(pStatus =>
+            new RaceData.RaceStatus(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
+        ).
+        ToList();
+    var res = new RaceData.RaceInfo(stages, states);
+    app.Logger.LogInformation("processed file {fileName}", fileName);
+    return Results.Ok(res);
+})
+.WithName("chartfile")
+.WithOpenApi();
+
+// optional: string? gender, ... gender ?? "yes"
+app.MapGet("/chartwebstatic", (int courseNo = 101) =>
+{
+    app.Logger.LogInformation("started");
+
+    string dataUrl = "https://xuhapage.s3.eu-west-2.amazonaws.com/participants.json";
+    List<Dictionary<string, string>> pDicts;
+    try {
+        pDicts = RaceData.UrlDataGetter.DictFromUrl(dataUrl);
+        app.Logger.LogInformation(
+            "parsed data at {url}, got {count} records",
+            dataUrl, pDicts.Count);
+    } catch (Exception e) {
+        app.Logger.LogError(e, "could not fetch or parse data at {url}", dataUrl);
+        return Results.BadRequest(e);
+    }
+
+    string stagesUrl = "https://xuhapage.s3.eu-west-2.amazonaws.com/stages.json";
+    string[] stageNames;
+    try {
+        var sDict = RaceData.UrlDataGetter.DictFromUrl(stagesUrl);
+        stageNames = sDict.Select(d => d["name"]).ToArray();
+        app.Logger.LogInformation(
+            "parsed stages at {url}, got {count} records",
+            stagesUrl, stageNames.Length);
+    } catch (Exception e) {
+        app.Logger.LogError(e, "could not fetch or parse stages at {url}", stagesUrl);
+        return Results.BadRequest(e);
+    }
+
+    var sCounter = new StageCounter(stageNames);
+    foreach (var p in pDicts) {
+        sCounter.AddParticipant(p);
+    }
+
+    var stages = stageNames.
+        Select(stageName =>
+            new RaceData.RaceStage(stageName, sCounter.GetCount(stageName))).
+        ToList();
+    var states = Enum.
+        GetValues(typeof(ParticipantStatus)).Cast<ParticipantStatus>().
+        Select(pStatus =>
+            new RaceData.RaceStatus(pStatus.ToString(), sCounter.GetStatusCount(pStatus))
+        ).
+        ToList();
+    var res = new RaceData.RaceInfo(stages, states);
+
+    app.Logger.LogInformation("done");
+    return Results.Ok(res);
+})
+.WithName("chartwebstatic")
+.WithOpenApi();
+
+*/

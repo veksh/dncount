@@ -23,7 +23,8 @@
 
 let courseNo = '999';
 let filter = 'all';
-let dataUrl = `https://stageweb.fly.dev/chartwebfly?course=${courseNo}&filter=${filter}`;
+let apiUrl = 'https://stageweb.fly.dev'
+let dataUrl = `${apiUrl}/chart?course=${courseNo}&filter=${filter}`;
 let chart;
 
 async function getData(dataUrl) {
@@ -102,7 +103,7 @@ let lastRefreshTime = Date.now();
 async function updateChart() {
   courseNo = courseSelect.value;
   filter = filterSelect.value;
-  dataUrl = `https://stageweb.fly.dev/chartwebfly?course=${courseNo}&filter=${filter}`;
+  dataUrl = `${apiUrl}/chart?course=${courseNo}&filter=${filter}`;
   data = await getData(dataUrl);
   if (data) {
     console.log("got data:", data);
@@ -124,7 +125,7 @@ async function updateChart() {
 }
 
 async function populateCourseSelect() {
-  const courses = await getData('https://stageweb.fly.dev/courses');
+  const courses = await getData(`${apiUrl}/courses`);
   courses.forEach(course => {
     const option = document.createElement('option');
     option.value = course.courseID;
