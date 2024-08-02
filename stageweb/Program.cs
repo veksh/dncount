@@ -110,6 +110,10 @@ app.MapGet("/chart", (int course, string filter="all:all") => {
         app.Logger.LogInformation(
             "parsed data at {url}, got {count} records",
             dataUrl, pDicts.Count);
+        // filter for good status (if present)
+        pDicts = pDicts.
+            Where(p => p.GetValueOrDefault("status", "-") == "-").
+            ToList();
     } catch (Exception e) {
         app.Logger.LogError(e, "could not fetch or parse data at {url}", dataUrl);
         return Results.BadRequest($"failed to parse course data: {e.Message}");
@@ -117,9 +121,9 @@ app.MapGet("/chart", (int course, string filter="all:all") => {
 
     if (filter != "all:all") {
         var f = filter.Split(":");
-        pDicts = (List<Dictionary<string, string>>)pDicts.
-          Where(p => p.GetValueOrDefault(f[0], "!" + f[1]) == f[1]).
-          ToList();
+        pDicts = pDicts.
+            Where(p => p.GetValueOrDefault(f[0], "!" + f[1]) == f[1]).
+            ToList();
         app.Logger.LogInformation(
             "filtered data with {filter}, {count} records matched",
             filter, pDicts.Count);
