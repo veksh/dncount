@@ -110,15 +110,25 @@ app.MapGet("/chart", (int course, string filter="all:all") => {
         app.Logger.LogInformation(
             "parsed data at {url}, got {count} records",
             dataUrl, pDicts.Count);
-        // filter for good status (if present)
-        pDicts = pDicts.
-            Where(p => p.GetValueOrDefault("status", "-") == "-").
-            ToList();
     } catch (Exception e) {
         app.Logger.LogError(e, "could not fetch or parse data at {url}", dataUrl);
         return Results.BadRequest($"failed to parse course data: {e.Message}");
     }
 
+    // filter for good status (if present)
+    // for (int i = 0; i < pDicts.Count; i++) {pDicts[i] = ...}
+    pDicts = pDicts.
+        Where(p => p.GetValueOrDefault("status", "-") == "-").
+        ToList();
+    // now trim _Time suffix from keys if present
+    pDicts = pDicts.
+        Select(pd => pd.ToDictionary(
+            pair => pair.Key.EndsWith("_Time")
+                ? pair.Key.Substring(0, pair.Key.Length - 5)
+                : pair.Key,
+            pair => pair.Value)).
+        ToList();
+    // and finally apply field-level filter
     if (filter != "all:all") {
         var f = filter.Split(":");
         pDicts = pDicts.
