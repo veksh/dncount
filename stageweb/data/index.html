@@ -45,9 +45,10 @@ function makeChart(data) {
       datasets: [{
         label: "splits",
         // see https://github.com/google/palette.js
-        backgroundColor: palette('tol', data.length).map(function(hex) {
-          return '#' + hex;
-        }),
+        // backgroundColor: palette('tol', data.length).map(function(hex) {
+        //  return '#' + hex;
+        //}),
+        backgroundColor: ["#E57373", "#4A4A4A", "#C50000"],
         // https://www.chartjs.org/docs/latest/general/data-structures.html
         data: data
       }]
@@ -109,9 +110,7 @@ async function updateChart() {
     console.log("got data:", data);
     if (chart) {
       chart.data.datasets[0].data = Object.values(data.stages);
-      chart.data.datasets[0].backgroundColor = palette('tol', data.stages.length).map(function(hex) {
-        return '#' + hex;
-      });
+      // chart.data.datasets[0].backgroundColor = palette('tol', data.stages.length).map(function(hex) { return '#' + hex; });
       chart.update();
     } else {
       chart = makeChart(data.stages);
